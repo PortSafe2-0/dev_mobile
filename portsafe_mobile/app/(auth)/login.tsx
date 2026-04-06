@@ -41,7 +41,7 @@ export default function LoginScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <Image
-          source={require("@/assets/images/logotipo_portsafe.png")}
+          source={require("@/assets/images/icon_portsafee.png")}
           style={{
             position: "absolute",
             top: isWeb ? -20 : 0,
