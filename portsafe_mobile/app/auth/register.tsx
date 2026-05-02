@@ -25,7 +25,6 @@ export default function RegisterScreen() {
   const [role, setRole] = useState<Role>("morador");
   const [residenceType, setResidenceType] = useState<ResidenceType>("apartamento");
 
-  // Campos comuns
   const [condominio, setCondominio] = useState("");
   const [nomeCompleto, setNomeCompleto] = useState("");
   const [email, setEmail] = useState("");
@@ -33,20 +32,16 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [telefone, setTelefone] = useState("");
   const [cpf, setCpf] = useState("");
+  const [bloco, setBloco] = useState("");
+  const [apto, setApto] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Campos exclusivos de Morador
-  const [bloco, setBloco] = useState("");
-  const [apto, setApto] = useState("");
-
   const { width } = useWindowDimensions();
   const isWeb = width > 768;
-
   const isMorador = role === "morador";
 
   const handleRegister = () => {
-    // TODO: integrar com serviço de autenticação
     console.log({
       role,
       residenceType,
@@ -62,49 +57,35 @@ export default function RegisterScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
+
       <KeyboardAvoidingView
         style={styles.root}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
+        {/* Logo */}
         <Image
           source={require("@/assets/images/icon_portsafee.png")}
-          style={{
-            position: "absolute",
-            top: isWeb ? -20 : 0,
-            left: "50%",
-            transform: [{ translateX: -(isWeb ? 100 : 80) }],
-            width: isWeb ? 200 : 160,
-            height: isWeb ? 200 : 160,
-            resizeMode: "contain",
-            opacity: 0.8,
-            zIndex: 0,
-          }}
+          style={styles.logo}
         />
 
-        <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
-
         <ScrollView
-          contentContainerStyle={[styles.scroll, isWeb && styles.scrollWeb]}
+          contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           <View style={[styles.container, isWeb && styles.containerWeb]}>
-            {/* Header */}
             <Text style={styles.title}>Criar Nova Conta</Text>
             <Text style={styles.subtitle}>
               Escolha seu tipo de usuário e complete o cadastro
             </Text>
 
-            {/* Toggle Morador / Porteiro */}
             <View style={styles.toggleWrapper}>
               <RoleToggle selected={role} onSelect={setRole} />
             </View>
 
-            {/* Form */}
             <View style={styles.form}>
-
-              {/* Condomínio */}
               <Text style={styles.label}>Condomínio</Text>
               <View style={styles.inputWrapper}>
                 <TextInput
@@ -118,7 +99,6 @@ export default function RegisterScreen() {
                 <Ionicons name="chevron-down" size={20} color={Colors.textSecondary} />
               </View>
 
-              {/* Tipo de Residência — apenas Morador */}
               {isMorador && (
                 <>
                   <Text style={[styles.label, { marginTop: 16 }]}>Tipo de Residência</Text>
@@ -130,12 +110,10 @@ export default function RegisterScreen() {
                       ]}
                       onPress={() => setResidenceType("apartamento")}
                     >
-                      <Text
-                        style={[
-                          styles.residenceOptionText,
-                          residenceType === "apartamento" && styles.residenceOptionTextActive,
-                        ]}
-                      >
+                      <Text style={[
+                        styles.residenceOptionText,
+                        residenceType === "apartamento" && styles.residenceOptionTextActive,
+                      ]}>
                         APARTAMENTO
                       </Text>
                     </TouchableOpacity>
@@ -146,12 +124,10 @@ export default function RegisterScreen() {
                       ]}
                       onPress={() => setResidenceType("casa")}
                     >
-                      <Text
-                        style={[
-                          styles.residenceOptionText,
-                          residenceType === "casa" && styles.residenceOptionTextActive,
-                        ]}
-                      >
+                      <Text style={[
+                        styles.residenceOptionText,
+                        residenceType === "casa" && styles.residenceOptionTextActive,
+                      ]}>
                         CASA
                       </Text>
                     </TouchableOpacity>
@@ -159,7 +135,6 @@ export default function RegisterScreen() {
                 </>
               )}
 
-              {/* Nome Completo */}
               <View style={[styles.inputWrapper, { marginTop: 16 }]}>
                 <TextInput
                   style={styles.input}
@@ -171,7 +146,6 @@ export default function RegisterScreen() {
                 />
               </View>
 
-              {/* E-mail */}
               <View style={[styles.inputWrapper, { marginTop: 12 }]}>
                 <TextInput
                   style={styles.input}
@@ -181,11 +155,9 @@ export default function RegisterScreen() {
                   onChangeText={setEmail}
                   keyboardType="email-address"
                   autoCapitalize="none"
-                  autoCorrect={false}
                 />
               </View>
 
-              {/* Senha */}
               <View style={[styles.inputWrapper, { marginTop: 12 }]}>
                 <TextInput
                   style={[styles.input, { flex: 1 }]}
@@ -194,12 +166,8 @@ export default function RegisterScreen() {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
-                  autoCapitalize="none"
                 />
-                <TouchableOpacity
-                  onPress={() => setShowPassword((v) => !v)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
+                <TouchableOpacity onPress={() => setShowPassword((v) => !v)}>
                   <Ionicons
                     name={showPassword ? "eye-off-outline" : "eye-outline"}
                     size={22}
@@ -208,7 +176,6 @@ export default function RegisterScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Confirmar Senha */}
               <View style={[styles.inputWrapper, { marginTop: 12 }]}>
                 <TextInput
                   style={[styles.input, { flex: 1 }]}
@@ -217,12 +184,8 @@ export default function RegisterScreen() {
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   secureTextEntry={!showConfirmPassword}
-                  autoCapitalize="none"
                 />
-                <TouchableOpacity
-                  onPress={() => setShowConfirmPassword((v) => !v)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
+                <TouchableOpacity onPress={() => setShowConfirmPassword((v) => !v)}>
                   <Ionicons
                     name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
                     size={22}
@@ -231,7 +194,6 @@ export default function RegisterScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Telefone + CPF */}
               <View style={[styles.row, { marginTop: 12 }]}>
                 <View style={[styles.inputWrapper, { flex: 1, marginRight: 8 }]}>
                   <TextInput
@@ -255,7 +217,6 @@ export default function RegisterScreen() {
                 </View>
               </View>
 
-              {/* Bloco + Apto — apenas Morador */}
               {isMorador && (
                 <View style={[styles.row, { marginTop: 12 }]}>
                   <View style={[styles.inputWrapper, { flex: 1, marginRight: 8 }]}>
@@ -270,28 +231,24 @@ export default function RegisterScreen() {
                   </View>
                   <View style={[styles.inputWrapper, { flex: 1 }]}>
                     <TextInput
-                      style={[styles.input, { flex: 1 }]}
+                      style={styles.input}
                       placeholder="Apto"
                       placeholderTextColor={Colors.textSecondary}
                       value={apto}
                       onChangeText={setApto}
                       keyboardType="numeric"
                     />
-                    <Ionicons name="chevron-down" size={20} color={Colors.textSecondary} />
                   </View>
                 </View>
               )}
 
-              {/* CTA */}
               <TouchableOpacity
-                style={[styles.registerButton, { marginTop: 28 }]}
+                style={styles.registerButton}
                 onPress={handleRegister}
-                activeOpacity={0.85}
               >
                 <Text style={styles.registerButtonText}>Cadastrar</Text>
               </TouchableOpacity>
 
-              {/* Login */}
               <View style={styles.loginRow}>
                 <Text style={styles.loginText}>Já tem uma conta? </Text>
                 <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
@@ -302,11 +259,8 @@ export default function RegisterScreen() {
           </View>
         </ScrollView>
 
-        {/* Back */}
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
+        {/* Botão Voltar */}
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={16} color={Colors.textSecondary} />
           <Text style={styles.backText}>VOLTAR A PÁGINA INICIAL</Text>
         </TouchableOpacity>
@@ -316,29 +270,29 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: Colors.background,
+  safeArea: { flex: 1, backgroundColor: Colors.background },
+  root: { flex: 1, backgroundColor: Colors.background },
+
+  logo: {
+    position: "absolute",
+    top: 40,
+    alignSelf: "center",
+    width: 160,
+    height: 160,
+    resizeMode: "contain",
+    zIndex: 5,
   },
+
   scroll: {
     flexGrow: 1,
     paddingHorizontal: 16,
-    paddingTop: 160,
-    paddingBottom: 100,
-    zIndex: 1,
+    paddingTop: 200,     // espaço para a logo
+    paddingBottom: 140,  // espaço para o botão voltar
   },
-  scrollWeb: {
-    alignItems: "center",
-    paddingTop: 150,
-  },
-  container: {
-    width: "100%",
-  },
-  containerWeb: {
-    maxWidth: 500,
-    width: "100%",
-    alignSelf: "center",
-  },
+
+  container: { width: "100%" },
+  containerWeb: { maxWidth: 500, alignSelf: "center" },
+
   title: {
     fontSize: 26,
     fontWeight: "800",
@@ -352,18 +306,17 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 32,
   },
-  toggleWrapper: {
-    marginBottom: 32,
-  },
-  form: {
-    gap: 0,
-  },
+
+  toggleWrapper: { marginBottom: 32 },
+  form: { width: "100%" },
+
   label: {
     fontSize: 14,
     color: Colors.textPrimary,
     marginBottom: 8,
     fontWeight: "500",
   },
+
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
@@ -374,14 +327,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     height: 48,
   },
-  input: {
-    flex: 1,
-    color: Colors.textPrimary,
-    fontSize: 15,
-  },
-  row: {
-    flexDirection: "row",
-  },
+  input: { flex: 1, color: Colors.textPrimary, fontSize: 15 },
+
+  row: { flexDirection: "row" },
+
   residenceToggle: {
     flexDirection: "row",
     backgroundColor: Colors.surfaceElevated,
@@ -405,37 +354,37 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     color: Colors.textSecondary,
-    letterSpacing: 0.5,
   },
   residenceOptionTextActive: {
     color: Colors.textPrimary,
   },
+
   registerButton: {
     backgroundColor: Colors.primary,
     borderRadius: 12,
     height: 52,
     alignItems: "center",
     justifyContent: "center",
+    marginTop: 28,
     marginBottom: 28,
   },
   registerButtonText: {
-    color: Colors.textPrimary,
+    color: "#fff",
     fontSize: 16,
     fontWeight: "700",
   },
+
   loginRow: {
     flexDirection: "row",
     justifyContent: "center",
   },
-  loginText: {
-    color: Colors.textSecondary,
-    fontSize: 14,
-  },
+  loginText: { color: Colors.textSecondary, fontSize: 14 },
   loginLink: {
     color: Colors.accent,
     fontSize: 14,
     fontWeight: "600",
   },
+
   backButton: {
     position: "absolute",
     bottom: 32,
@@ -443,6 +392,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+    zIndex: 30,
+    backgroundColor: Colors.background,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
   },
   backText: {
     color: Colors.textSecondary,

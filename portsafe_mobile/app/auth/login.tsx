@@ -26,38 +26,31 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleLogin = () => {
-    console.log({ role, email, password });
-  };
+  const handleLogin = () => console.log({ role, email, password });
 
   const { width } = useWindowDimensions();
   const isWeb = width > 768;
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <KeyboardAvoidingView
-        style={styles.root}
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
+
+      <KeyboardAvoidingView 
+        style={styles.root} 
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
-
         {/* Logo */}
-        <Image
-          source={require("@/assets/images/icon_portsafee.png")}
-          style={styles.logo}
-        />
+        <Image source={require("@/assets/images/icon_portsafee.png")} style={styles.logo} />
 
-        <ScrollView
-          contentContainerStyle={styles.scroll}
+        <ScrollView 
+          contentContainerStyle={styles.scroll} 
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           <View style={[styles.container, isWeb && styles.containerWeb]}>
             <Text style={styles.title}>Bem-vindo de volta</Text>
-            <Text style={styles.subtitle}>
-              Faça login para ter acesso a sua conta
-            </Text>
-
+            <Text style={styles.subtitle}>Faça login para ter acesso a sua conta</Text>
+            
             <View style={styles.toggleWrapper}>
               <RoleToggle selected={role} onSelect={setRole} />
             </View>
@@ -73,7 +66,6 @@ export default function LoginScreen() {
                   onChangeText={setEmail}
                   keyboardType="email-address"
                   autoCapitalize="none"
-                  autoCorrect={false}
                 />
               </View>
 
@@ -86,14 +78,9 @@ export default function LoginScreen() {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
-                  autoCapitalize="none"
                 />
-                <TouchableOpacity onPress={() => setShowPassword((v) => !v)}>
-                  <Ionicons
-                    name={showPassword ? "eye-off-outline" : "eye-outline"}
-                    size={22}
-                    color={Colors.textSecondary}
-                  />
+                <TouchableOpacity onPress={() => setShowPassword(v => !v)}>
+                  <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={22} color={Colors.textSecondary} />
                 </TouchableOpacity>
               </View>
 
@@ -115,6 +102,7 @@ export default function LoginScreen() {
           </View>
         </ScrollView>
 
+        {/* Botão Voltar */}
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={16} color={Colors.textSecondary} />
           <Text style={styles.backText}>VOLTAR A PÁGINA INICIAL</Text>
@@ -125,59 +113,36 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
+  safeArea: { flex: 1, backgroundColor: Colors.background },
+  root: { flex: 1, backgroundColor: Colors.background },
+
   logo: {
     position: "absolute",
-    top: 60,
+    top: 50,
     alignSelf: "center",
-    width: 220,
-    height: 220,
+    width: 140,
+    height: 140,
     resizeMode: "contain",
-    zIndex: 1,
+    zIndex: 5,
   },
+
   scroll: {
     flexGrow: 1,
     paddingHorizontal: 16,
-    justifyContent: "center",
-    paddingTop: 4,
-    paddingBottom: 100,
+    paddingTop: 210,
+    paddingBottom: 100,   // reduzido
   },
-  container: {
-    width: "100%",
-    alignItems: "center",
-  },
-  containerWeb: {
-    maxWidth: 500,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: "800",
-    color: Colors.textPrimary,
-    textAlign: "center",
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    textAlign: "center",
-    marginBottom: 32,
-  },
-  toggleWrapper: {
-    marginBottom: 32,
-    width: "100%",
-  },
-  form: {
-    width: "100%",
-  },
-  label: {
-    fontSize: 14,
-    color: Colors.textPrimary,
-    marginBottom: 8,
-    fontWeight: "500",
-  },
+
+  container: { width: "100%", alignItems: "center" },
+  containerWeb: { maxWidth: 500 },
+
+  title: { fontSize: 26, fontWeight: "800", color: Colors.textPrimary, textAlign: "center", marginBottom: 8 },
+  subtitle: { fontSize: 14, color: Colors.textSecondary, textAlign: "center", marginBottom: 32 },
+
+  toggleWrapper: { marginBottom: 32, width: "100%" },
+  form: { width: "100%" },
+  label: { fontSize: 14, color: Colors.textPrimary, marginBottom: 8, fontWeight: "500" },
+
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
@@ -188,19 +153,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     height: 48,
   },
-  input: {
-    flex: 1,
-    color: Colors.textPrimary,
-    fontSize: 15,
-  },
-  forgotWrapper: {
-    marginTop: 12,
-    marginBottom: 24,
-  },
-  forgotText: {
-    color: Colors.textSecondary,
-    fontSize: 14,
-  },
+  input: { flex: 1, color: Colors.textPrimary, fontSize: 15 },
+
+  forgotWrapper: { marginTop: 12, marginBottom: 24 },
+  forgotText: { color: Colors.textSecondary, fontSize: 14 },
+
   loginButton: {
     backgroundColor: Colors.primary,
     borderRadius: 12,
@@ -209,31 +166,24 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 28,
   },
-  loginButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  registerRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-  },
-  registerText: {
-    color: Colors.textSecondary,
-    fontSize: 14,
-  },
-  registerLink: {
-    color: Colors.accent,
-    fontSize: 14,
-    fontWeight: "600",
-  },
+  loginButtonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+
+  registerRow: { flexDirection: "row", justifyContent: "center" },
+  registerText: { color: Colors.textSecondary, fontSize: 14 },
+  registerLink: { color: Colors.accent, fontSize: 14, fontWeight: "600" },
+
   backButton: {
     position: "absolute",
-    bottom: 32,
+    bottom: 30,
     alignSelf: "center",
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+    zIndex: 50,
+    backgroundColor: Colors.background,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
   },
   backText: {
     color: Colors.textSecondary,
