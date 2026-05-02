@@ -149,7 +149,7 @@ export default function ResetPasswordScreen() {
             </View>
 
             {/* Botão */}
-            <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+            <TouchableOpacity style={styles.submitButton}  onPress={() => router.push("/auth/login")}>
               <Text style={styles.submitButtonText}>Redefinir Senha</Text>
             </TouchableOpacity>
 

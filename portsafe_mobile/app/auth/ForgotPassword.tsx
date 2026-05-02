@@ -26,6 +26,7 @@ export default function ForgotPasswordScreen() {
   const handleSubmit = () => {
     setCodeSent(true);
     console.log({ email });
+    router.push("/auth/ResetPassword");
   };
 
   return (
@@ -108,7 +109,7 @@ export default function ForgotPasswordScreen() {
             {/* Link login */}
             <View style={styles.loginRow}>
               <Text style={styles.loginText}>Lembrou a senha? </Text>
-              <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
+              <TouchableOpacity onPress={() => router.push("/auth/login")}>
                 <Text style={styles.loginLink}>Faça login</Text>
               </TouchableOpacity>
             </View>
