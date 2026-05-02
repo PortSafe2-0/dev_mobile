@@ -170,7 +170,7 @@ export default function RegisterDeliveryStep1Screen() {
               </View>
 
               {/* Botão Confirmar */}
-              <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
+              <TouchableOpacity style={styles.confirmButton}  onPress={() => router.push("/DeliveryPeople/AddressConfirmationPage")}>
                 <Text style={styles.confirmButtonText}>Confirmar e Continuar</Text>
               </TouchableOpacity>
             </View>
