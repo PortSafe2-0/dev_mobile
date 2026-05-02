@@ -136,7 +136,7 @@ export default function RegisterDeliveryStep3Screen() {
             </View>
 
             {/* Botão Confirmar Depósito */}
-            <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
+            <TouchableOpacity style={styles.confirmButton} onPress={() => router.push("/DeliveryPeople/RegistrationDeliveryPage")}>
               <Text style={styles.confirmButtonText}>Confirmar Depósito</Text>
             </TouchableOpacity>
 

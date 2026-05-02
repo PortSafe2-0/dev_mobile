@@ -126,7 +126,7 @@ export default function RegisterDeliveryStep2Screen() {
             </View>
 
             {/* Botão Confirmar e Continuar */}
-            <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
+            <TouchableOpacity style={styles.confirmButton}  onPress={() => router.push("/DeliveryPeople/DeliveryInstructionsPage")}>
               <Text style={styles.confirmButtonText}>Confirmar e Continuar</Text>
               <Ionicons name="arrow-forward" size={18} color="#fff" />
             </TouchableOpacity>
