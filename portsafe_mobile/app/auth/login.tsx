@@ -26,7 +26,13 @@ export default function LoginScreen() {
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
 
-    const handleLogin = () => console.log({ role, email, password });
+    const handleLogin = () => {
+        if (role === "morador") {
+            router.replace("/Resident/(tabs)");
+        } else {
+            router.replace("/Porter/(tabs)");
+        }
+        };
 
     const { width } = useWindowDimensions();
     const isWeb = width > 768;

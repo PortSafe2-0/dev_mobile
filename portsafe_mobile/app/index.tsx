@@ -20,7 +20,7 @@ export default function PortSafeScreen() {
   const handleSelectRole = (role: string) => {
     if (role === "portaria") router.push("/auth/login");
     else if (role === "morador") router.push("/auth/login");
-    else if (role === "entregador") router.push("/entregador");
+    else if (role === "entregador") router.push("/DeliveryPeople/RegisterDeliveryPage");
   };
 
   return (
