@@ -9,6 +9,7 @@ import {
   Image,
   useWindowDimensions,
 } from "react-native";
+import { router } from "expo-router";
 import { Colors } from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -82,7 +83,7 @@ export default function PorterHomeScreen() {
           </View>
 
           {/* Botão Registro Manual */}
-          <TouchableOpacity style={styles.registerButton}>
+          <TouchableOpacity style={styles.registerButton} onPress={() => router.push("/Porter/(tabs)/ManualRegistrationPage")}>
             <Ionicons name="reader-outline" size={20} color="#fff" />
             <Text style={styles.registerButtonText}>Registro Manual</Text>
           </TouchableOpacity>
