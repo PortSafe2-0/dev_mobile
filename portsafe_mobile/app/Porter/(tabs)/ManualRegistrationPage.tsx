@@ -43,16 +43,10 @@ export default function ManualRegistrationScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <View style={styles.headerLogoBox}>
               <Image
-                source={require("@/assets/images/icon_portsafee.png")}
+                source={require("@/assets/images/horiz_icon.png")}
                 style={styles.headerLogo}
               />
-            </View>
-            <Text style={styles.headerBrand}>
-              <Text style={styles.headerBrandPort}>Port</Text>
-              <Text style={styles.headerBrandSafe}>Safe</Text>
-            </Text>
           </View>
           <Text style={styles.headerTitle}>REGISTRO MANUAL</Text>
           <TouchableOpacity style={styles.headerIconBtn}>
@@ -200,7 +194,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     overflow: "hidden",
   },
-  headerLogo: { width: 26, height: 26, resizeMode: "contain" },
+  headerLogo: { width: 180, height: 100, resizeMode: "contain" },
   headerBrand: { fontSize: 16, fontWeight: "800" },
   headerBrandPort: { color: Colors.textPrimary },
   headerBrandSafe: { color: Colors.primary },

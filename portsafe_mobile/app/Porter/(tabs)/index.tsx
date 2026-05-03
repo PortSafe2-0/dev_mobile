@@ -58,13 +58,10 @@ export default function PorterHomeScreen() {
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-              <View style={styles.headerLogoBox}>
                 <Image
-                  source={require("@/assets/images/icon_portsafee.png")}
+                  source={require("@/assets/images/horiz_icon.png")}
                   style={styles.headerLogo}
                 />
-              </View>
-              <Text style={styles.headerBrand}>PortSafe</Text>
             </View>
             <View style={styles.headerRight}>
               <TouchableOpacity style={styles.headerIconBtn}>
@@ -192,7 +189,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     overflow: "hidden",
   },
-  headerLogo: { width: 28, height: 28, resizeMode: "contain" },
+  headerLogo: { width: 180, height: 100, resizeMode: "contain" },
   headerBrand: { fontSize: 20, fontWeight: "800", color: Colors.textPrimary },
   headerRight: { flexDirection: "row", alignItems: "center", gap: 4 },
   headerIconBtn: { padding: 6 },
