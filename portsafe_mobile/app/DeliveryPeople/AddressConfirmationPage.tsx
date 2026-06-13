@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -9,43 +9,51 @@ import {
   ScrollView,
   StatusBar,
   Image,
+  ActivityIndicator,
+  Alert,
   useWindowDimensions,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { Colors } from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { api } from "@/services/api";
 
 const TOTAL_STEPS = 4;
 const CURRENT_STEP = 2;
 
-// Dados vindos do passo anterior (substituir por props/params reais)
-const deliveryData = {
-  destinatario: "João Silva",
-  apartamento: "1205",
-  bloco: "A - 804",
-  endereco: {
-    rua: "Rua das Flores, 123",
-    bairro: "Jardim das Acácias",
-    cidade: "São Paulo/SP",
-    cep: "CEP: 01234-567",
-  },
-};
-
 export default function RegisterDeliveryStep2Screen() {
+  const { recipientName, unitType, cep, deliveryType } = useLocalSearchParams<{
+    recipientName: string; unitType: string; cep: string; deliveryType: string;
+  }>();
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const { width } = useWindowDimensions();
   const isWeb = width > 768;
-
   const progress = (CURRENT_STEP / TOTAL_STEPS) * 100;
 
-  const handleConfirm = () => {
-    // router.push("/delivery/step3");
-    console.log("Confirmed step 2");
+  const handleConfirm = async () => {
+    setLoading(true);
+    setErrorMsg(null);
+    try {
+      const res = await api.deliveries.createAnonymous({ recipientName: recipientName ?? "" });
+      router.push({
+        pathname: '/DeliveryPeople/DeliveryInstructionsPage',
+        params: {
+          trackingCode: res.data.trackingCode,
+          lockerCode: res.data.lockerCode,
+          lockerLocation: res.data.lockerLocation,
+        },
+      });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Não foi possível registrar a entrega.";
+      setErrorMsg(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleRedigitar = () => {
-    router.back();
-  };
+  const handleRedigitar = () => { router.back(); };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -66,6 +74,7 @@ export default function RegisterDeliveryStep2Screen() {
             <Image
               source={require("@/assets/images/logoslogan.png")}
               style={styles.logo}
+              resizeMode="contain"
             />
 
             {/* Barra de progresso */}
@@ -80,12 +89,12 @@ export default function RegisterDeliveryStep2Screen() {
             {/* Card principal */}
             <View style={styles.card}>
 
-              {/* Endereço Validado */}
+              {/* Dados Confirmados */}
               <View style={styles.validatedRow}>
                 <View style={styles.validatedIcon}>
                   <Ionicons name="checkmark-circle" size={26} color="#4CAF50" />
                 </View>
-                <Text style={styles.validatedText}>Endereço Validado!</Text>
+                <Text style={styles.validatedText}>Dados Confirmados!</Text>
               </View>
 
               <View style={styles.divider} />
@@ -95,44 +104,54 @@ export default function RegisterDeliveryStep2Screen() {
 
               {/* Destinatário */}
               <Text style={styles.fieldLabel}>DESTINATÁRIO</Text>
-              <Text style={styles.fieldValue}>{deliveryData.destinatario}</Text>
+              <Text style={styles.fieldValue}>{recipientName ?? "—"}</Text>
 
-              {/* Apartamento + Bloco */}
+              {/* Tipo de unidade + Tipo de entrega */}
               <View style={styles.row}>
                 <View style={styles.rowItem}>
-                  <Text style={styles.fieldLabel}>APARTAMENTO</Text>
-                  <Text style={styles.fieldValue}>{deliveryData.apartamento}</Text>
+                  <Text style={styles.fieldLabel}>TIPO DE UNIDADE</Text>
+                  <Text style={styles.fieldValue}>{unitType ?? "—"}</Text>
                 </View>
                 <View style={styles.rowItem}>
-                  <Text style={styles.fieldLabel}>BLOCO</Text>
-                  <Text style={styles.fieldValue}>{deliveryData.bloco}</Text>
+                  <Text style={styles.fieldLabel}>TIPO DE ENTREGA</Text>
+                  <Text style={[styles.fieldValue, { textTransform: "capitalize" }]}>{deliveryType ?? "—"}</Text>
                 </View>
               </View>
 
-              {/* Endereço de Entrega */}
-              <View style={styles.addressBox}>
-                <View style={styles.addressIconCol}>
-                  <Ionicons name="location" size={18} color={Colors.primary} />
+              {/* CEP */}
+              {!!cep && (
+                <View style={styles.addressBox}>
+                  <View style={styles.addressIconCol}>
+                    <Ionicons name="location" size={18} color={Colors.primary} />
+                  </View>
+                  <View style={styles.addressTextCol}>
+                    <Text style={styles.fieldLabel}>CEP</Text>
+                    <Text style={styles.fieldValue}>{cep}</Text>
+                  </View>
                 </View>
-                <View style={styles.addressTextCol}>
-                  <Text style={styles.fieldLabel}>ENDEREÇO DE{"\n"}ENTREGA</Text>
-                  <Text style={styles.fieldValue}>{deliveryData.endereco.rua}</Text>
-                  <Text style={styles.fieldValue}>{deliveryData.endereco.bairro}</Text>
-                  <Text style={styles.fieldValue}>{deliveryData.endereco.cidade}</Text>
-                  <Text style={styles.fieldValue}>{deliveryData.endereco.cep}</Text>
-                </View>
-              </View>
+              )}
 
             </View>
 
+            {!!errorMsg && (
+              <View style={styles.errorBox}>
+                <Ionicons name="alert-circle-outline" size={18} color="#FF5252" />
+                <Text style={styles.errorText}>{errorMsg}</Text>
+              </View>
+            )}
+
             {/* Botão Confirmar e Continuar */}
-            <TouchableOpacity style={styles.confirmButton}  onPress={() => router.push("/DeliveryPeople/DeliveryInstructionsPage")}>
-              <Text style={styles.confirmButtonText}>Confirmar e Continuar</Text>
-              <Ionicons name="arrow-forward" size={18} color="#fff" />
+            <TouchableOpacity style={[styles.confirmButton, loading && { opacity: 0.6 }]} onPress={handleConfirm} disabled={loading}>
+              {loading ? <ActivityIndicator color="#fff" /> : (
+                <>
+                  <Text style={styles.confirmButtonText}>Confirmar e Continuar</Text>
+                  <Ionicons name="arrow-forward" size={18} color="#fff" />
+                </>
+              )}
             </TouchableOpacity>
 
             {/* Botão Redigitar Dados */}
-            <TouchableOpacity style={styles.redigitarButton} onPress={handleRedigitar}>
+            <TouchableOpacity style={styles.redigitarButton} onPress={handleRedigitar} disabled={loading}>
               <Ionicons name="create-outline" size={16} color={Colors.textSecondary} />
               <Text style={styles.redigitarText}>Redigitar Dados</Text>
             </TouchableOpacity>
@@ -163,7 +182,7 @@ const styles = StyleSheet.create({
   logo: {
     width: 220,
     height: 220,
-    resizeMode: "contain",
+
     marginBottom: 8,
   },
   appName: {
@@ -299,6 +318,26 @@ const styles = StyleSheet.create({
   addressTextCol: {
     flex: 1,
     gap: 1,
+  },
+
+  // Erro
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    backgroundColor: "rgba(255,82,82,0.1)",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255,82,82,0.3)",
+    padding: 12,
+    width: "100%",
+    marginBottom: 12,
+  },
+  errorText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#FF5252",
+    lineHeight: 18,
   },
 
   // Botão Confirmar

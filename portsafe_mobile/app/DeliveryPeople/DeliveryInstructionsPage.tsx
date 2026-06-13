@@ -11,25 +11,27 @@ import {
   Image,
   useWindowDimensions,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { Colors } from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const TOTAL_STEPS = 4;
 const CURRENT_STEP = 3;
-const LOCKER_NUMBER = "015";
 const INITIAL_SECONDS = 4 * 60 + 48; // 4:48
 
-const INSTRUCTIONS = [
-  `Localize o armário ${LOCKER_NUMBER}`,
-  "Abra a porta (já está destravada)",
-  "Coloque a encomenda dentro",
-  "Feche a porta completamente",
-  'Clique em "Confirmar Depósito"',
-];
-
 export default function RegisterDeliveryStep3Screen() {
+  const params = useLocalSearchParams<{ trackingCode: string; lockerCode: string; lockerLocation: string }>();
+  const lockerCode = params.lockerCode ?? "---";
+
+  const INSTRUCTIONS = [
+    `Localize o armário ${lockerCode}`,
+    "Abra a porta (já está destravada)",
+    "Coloque a encomenda dentro",
+    "Feche a porta completamente",
+    'Clique em "Confirmar Depósito"',
+  ];
+
   const [secondsLeft, setSecondsLeft] = useState(INITIAL_SECONDS);
 
   const { width } = useWindowDimensions();
@@ -49,8 +51,10 @@ export default function RegisterDeliveryStep3Screen() {
   const timerDisplay = `${minutes}:${String(seconds).padStart(2, "0")}`;
 
   const handleConfirm = () => {
-    // router.push("/delivery/step4");
-    console.log("Depósito confirmado");
+    router.push({
+      pathname: '/DeliveryPeople/RegistrationDeliveryPage',
+      params: { trackingCode: params.trackingCode ?? "", lockerCode: params.lockerCode ?? "" },
+    });
   };
 
   return (
@@ -72,6 +76,7 @@ export default function RegisterDeliveryStep3Screen() {
             <Image
               source={require("@/assets/images/logoslogan.png")}
               style={styles.logo}
+              resizeMode="contain"
             />
 
             {/* Barra de progresso */}
@@ -92,7 +97,7 @@ export default function RegisterDeliveryStep3Screen() {
 
               {/* Número do armário */}
               <Text style={styles.lockerSectionLabel}>ARMÁRIO DESTRAVADO</Text>
-              <Text style={styles.lockerNumber}>{LOCKER_NUMBER}</Text>
+              <Text style={styles.lockerNumber}>{lockerCode}</Text>
 
               {/* Status badge */}
               <View style={styles.statusBadge}>
@@ -136,7 +141,7 @@ export default function RegisterDeliveryStep3Screen() {
             </View>
 
             {/* Botão Confirmar Depósito */}
-            <TouchableOpacity style={styles.confirmButton} onPress={() => router.push("/DeliveryPeople/RegistrationDeliveryPage")}>
+            <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
               <Text style={styles.confirmButtonText}>Confirmar Depósito</Text>
             </TouchableOpacity>
 
@@ -166,7 +171,7 @@ const styles = StyleSheet.create({
   logo: {
     width: 220,
     height: 220,
-    resizeMode: "contain",
+    
     marginBottom: 8,
   },
   appName: {

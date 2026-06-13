@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,22 +10,47 @@ import {
   ScrollView,
   StatusBar,
   Image,
+  ActivityIndicator,
+  Modal,
+  FlatList,
   useWindowDimensions,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { RoleToggle } from "@/components/ui/RoleToggle";
 import { Colors } from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuth } from "@/contexts/AuthContext";
+import { api } from "@/services/api";
 
 type Role = "morador" | "porteiro";
 type ResidenceType = "apartamento" | "casa";
 
+const CONDOMINIOS_FALLBACK = [
+  "Residencial Porto Seguro",
+  "Condomínio Solar das Flores",
+  "Edifício Vila Nova",
+  "Condomínio Jardim das Acácias",
+  "Residencial Bella Vista",
+  "Condomínio Park Avenue",
+  "Edifício Horizonte Azul",
+  "Residencial Green Park",
+];
+
 export default function RegisterScreen() {
-  const [role, setRole] = useState<Role>("morador");
+  const { role: roleParam } = useLocalSearchParams<{ role?: string }>();
+  const [role, setRole] = useState<Role>(roleParam === "porteiro" ? "porteiro" : "morador");
   const [residenceType, setResidenceType] = useState<ResidenceType>("apartamento");
 
   const [condominio, setCondominio] = useState("");
+  const [condominioModalVisible, setCondominioModalVisible] = useState(false);
+  const [condominios, setCondominios] = useState<string[]>(CONDOMINIOS_FALLBACK);
+
+  useEffect(() => {
+    api.condominios.getAll()
+      .then((res) => { if (res.data?.length) setCondominios(res.data); })
+      .catch(() => {}); // usa fallback se API falhar
+  }, []);
   const [nomeCompleto, setNomeCompleto] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -44,7 +69,10 @@ export default function RegisterScreen() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
+  const { register } = useAuth();
   const { width } = useWindowDimensions();
   const isWeb = width > 768;
 
@@ -52,19 +80,39 @@ export default function RegisterScreen() {
   const isPorteiro = role === "porteiro";
   const isApartamento = residenceType === "apartamento";
 
-  const handleRegister = () => {
-    console.log({
-      role,
-      condominio,
-      nomeCompleto,
-      email,
-      password,
-      confirmPassword,
-      telefone,
-      ...(isMorador && { cpf, residenceType }),
-      ...(isMorador && isApartamento && { bloco, apto }),
-      ...(isMorador && !isApartamento && { rua, numeroCasa, cep }),
-    });
+  const handleRegister = async () => {
+    if (!nomeCompleto.trim() || !email.trim() || !password) {
+      setError("Preencha nome, e-mail e senha");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("As senhas não conferem");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      await register(nomeCompleto.trim(), email.trim(), password, {
+        role,
+        phone: telefone.trim() || undefined,
+        document: cpf.trim() || undefined,
+        block: bloco.trim() || undefined,
+        unitNumber: apto.trim() || undefined,
+        street: rua.trim() || undefined,
+        houseNumber: numeroCasa.trim() || undefined,
+        zipCode: cep.trim() || undefined,
+      });
+      if (role === "morador") {
+        router.replace("/Resident/(tabs)");
+      } else {
+        router.replace("/Porter/(tabs)");
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Erro ao cadastrar";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -84,6 +132,7 @@ export default function RegisterScreen() {
           <Image
             source={require("@/assets/images/icon_portsafee.png")}
             style={styles.logo}
+            resizeMode="contain"
           />
 
           <View style={[styles.container, isWeb && styles.containerWeb]}>
@@ -100,17 +149,52 @@ export default function RegisterScreen() {
 
               {/* Condomínio — todos os roles */}
               <Text style={styles.label}>Condomínio</Text>
-              <View style={styles.inputWrapper}>
-                <TextInput
-                  style={[styles.input, { flex: 1 }]}
-                  placeholder="Selecione o condomínio"
-                  placeholderTextColor={Colors.textSecondary}
-                  value={condominio}
-                  onChangeText={setCondominio}
-                  autoCapitalize="words"
-                />
+              <TouchableOpacity
+                style={styles.inputWrapper}
+                onPress={() => setCondominioModalVisible(true)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.input, { flex: 1, lineHeight: 48 }, !condominio && { color: Colors.textSecondary }]}>
+                  {condominio || "Selecione o condomínio"}
+                </Text>
                 <Ionicons name="chevron-down" size={20} color={Colors.textSecondary} />
-              </View>
+              </TouchableOpacity>
+
+              {/* Modal de seleção de condomínio */}
+              <Modal
+                visible={condominioModalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setCondominioModalVisible(false)}
+              >
+                <TouchableOpacity
+                  style={styles.modalOverlay}
+                  activeOpacity={1}
+                  onPress={() => setCondominioModalVisible(false)}
+                >
+                  <View style={styles.modalBox}>
+                    <Text style={styles.modalTitle}>Selecione o Condomínio</Text>
+                    <FlatList
+                      data={condominios}
+                      keyExtractor={(item) => item}
+                      renderItem={({ item }) => (
+                        <TouchableOpacity
+                          style={[styles.modalOption, condominio === item && styles.modalOptionSelected]}
+                          onPress={() => { setCondominio(item); setCondominioModalVisible(false); }}
+                        >
+                          <Text style={[styles.modalOptionText, condominio === item && styles.modalOptionTextSelected]}>
+                            {item}
+                          </Text>
+                          {condominio === item && (
+                            <Ionicons name="checkmark" size={18} color={Colors.primary} />
+                          )}
+                        </TouchableOpacity>
+                      )}
+                      ItemSeparatorComponent={() => <View style={styles.modalSeparator} />}
+                    />
+                  </View>
+                </TouchableOpacity>
+              </Modal>
 
               {/* Tipo de Residência — apenas Morador */}
               {isMorador && (
@@ -315,11 +399,20 @@ export default function RegisterScreen() {
                 </>
               )}
 
+              {error && (
+                <Text style={styles.errorText}>{error}</Text>
+              )}
+
               <TouchableOpacity
-                style={styles.registerButton}
+                style={[styles.registerButton, loading && styles.registerButtonDisabled]}
                 onPress={handleRegister}
+                disabled={loading}
               >
-                <Text style={styles.registerButtonText}>Cadastrar</Text>
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.registerButtonText}>Cadastrar</Text>
+                )}
               </TouchableOpacity>
 
               <View style={styles.loginRow}>
@@ -353,7 +446,6 @@ const styles = StyleSheet.create({
   logo: {
     width: 160,
     height: 160,
-    resizeMode: "contain",
     alignSelf: "center",
     marginTop: 40,
     marginBottom: 24,
@@ -443,10 +535,18 @@ const styles = StyleSheet.create({
     marginTop: 28,
     marginBottom: 28,
   },
+  registerButtonDisabled: { opacity: 0.6 },
   registerButtonText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "700",
+  },
+  errorText: {
+    color: "#FF5252",
+    fontSize: 13,
+    textAlign: "center",
+    marginTop: 8,
+    marginBottom: 4,
   },
 
   loginRow: {
@@ -459,6 +559,57 @@ const styles = StyleSheet.create({
     color: Colors.accent,
     fontSize: 14,
     fontWeight: "600",
+  },
+
+  // Modal de seleção
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  modalBox: {
+    backgroundColor: Colors.surfaceElevated,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    width: "100%",
+    maxHeight: 420,
+    overflow: "hidden",
+  },
+  modalTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: Colors.textPrimary,
+    textAlign: "center",
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  modalOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+  },
+  modalOptionSelected: {
+    backgroundColor: "rgba(33,150,243,0.08)",
+  },
+  modalOptionText: {
+    fontSize: 15,
+    color: Colors.textPrimary,
+    flex: 1,
+  },
+  modalOptionTextSelected: {
+    color: Colors.primary,
+    fontWeight: "600",
+  },
+  modalSeparator: {
+    height: 1,
+    backgroundColor: Colors.border,
+    marginHorizontal: 16,
   },
 
   // Botão Voltar dentro do scroll — sem position absolute

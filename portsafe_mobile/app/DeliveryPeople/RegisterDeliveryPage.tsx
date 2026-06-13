@@ -10,6 +10,7 @@ import {
   ScrollView,
   StatusBar,
   Image,
+  Alert,
   useWindowDimensions,
 } from "react-native";
 import { router } from "expo-router";
@@ -42,8 +43,14 @@ export default function RegisterDeliveryStep1Screen() {
   const isWeb = width > 768;
 
   const handleConfirm = () => {
-    console.log({ recipientName, unitType, cep, deliveryType });
-    // router.push("/delivery/step2");
+    if (!recipientName.trim()) {
+      Alert.alert("Atenção", "Informe o nome do destinatário.");
+      return;
+    }
+    router.push({
+      pathname: '/DeliveryPeople/AddressConfirmationPage',
+      params: { recipientName: recipientName.trim(), unitType, cep, deliveryType },
+    });
   };
 
   const progress = (CURRENT_STEP / TOTAL_STEPS) * 100;
@@ -67,6 +74,7 @@ export default function RegisterDeliveryStep1Screen() {
             <Image
               source={require("@/assets/images/logoslogan.png")}
               style={styles.logo}
+              resizeMode="contain"
             />
 
             {/* Barra de progresso */}
@@ -170,7 +178,7 @@ export default function RegisterDeliveryStep1Screen() {
               </View>
 
               {/* Botão Confirmar */}
-              <TouchableOpacity style={styles.confirmButton}  onPress={() => router.push("/DeliveryPeople/AddressConfirmationPage")}>
+              <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
                 <Text style={styles.confirmButtonText}>Confirmar e Continuar</Text>
               </TouchableOpacity>
             </View>
@@ -207,7 +215,7 @@ const styles = StyleSheet.create({
   logo: {
     width: 220,
     height: 220,
-    resizeMode: "contain",
+    
     marginBottom: 8,
   },
   appName: {

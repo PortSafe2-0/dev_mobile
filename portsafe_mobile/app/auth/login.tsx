@@ -10,29 +10,49 @@ import {
     ScrollView,
     StatusBar,
     Image,
+    ActivityIndicator,
     useWindowDimensions,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { RoleToggle } from "@/components/ui/RoleToggle";
 import { Colors } from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuth } from "@/contexts/AuthContext";
 
 type Role = "morador" | "porteiro";
 
 export default function LoginScreen() {
-    const [role, setRole] = useState<Role>("morador");
+    const { role: roleParam } = useLocalSearchParams<{ role?: string }>();
+    const [role, setRole] = useState<Role>(roleParam === "porteiro" ? "porteiro" : "morador");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    const handleLogin = () => {
-        if (role === "morador") {
-            router.replace("/Resident/(tabs)");
-        } else {
-            router.replace("/Porter/(tabs)");
+    const { login } = useAuth();
+
+    const handleLogin = async () => {
+        if (!email.trim() || !password) {
+            setError("Preencha e-mail e senha");
+            return;
         }
-        };
+        setLoading(true);
+        setError(null);
+        try {
+            await login(email.trim(), password);
+            if (role === "morador") {
+                router.replace("/Resident/(tabs)");
+            } else {
+                router.replace("/Porter/(tabs)");
+            }
+        } catch {
+            setError("Credenciais inválidas. Verifique e-mail e senha.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const { width } = useWindowDimensions();
     const isWeb = width > 768;
@@ -54,6 +74,7 @@ export default function LoginScreen() {
                     <Image
                         source={require("@/assets/images/icon_portsafee.png")}
                         style={styles.logo}
+                        resizeMode="contain"
                     />
 
                     <View style={[styles.container, isWeb && styles.containerWeb]}>
@@ -103,13 +124,25 @@ export default function LoginScreen() {
                                 <Text style={styles.forgotText}>Esqueceu a senha?</Text>
                             </TouchableOpacity>
 
-                            <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-                                <Text style={styles.loginButtonText}>Entrar</Text>
+                            {error && (
+                                <Text style={styles.errorText}>{error}</Text>
+                            )}
+
+                            <TouchableOpacity
+                                style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+                                onPress={handleLogin}
+                                disabled={loading}
+                            >
+                                {loading ? (
+                                    <ActivityIndicator color="#fff" />
+                                ) : (
+                                    <Text style={styles.loginButtonText}>Entrar</Text>
+                                )}
                             </TouchableOpacity>
 
                             <View style={styles.registerRow}>
                                 <Text style={styles.registerText}>Não tem uma conta? </Text>
-                                <TouchableOpacity onPress={() => router.push("/auth/register")}>
+                                <TouchableOpacity onPress={() => router.push({ pathname: "/auth/register", params: { role } })}>
                                     <Text style={styles.registerLink}>Cadastre-se aqui</Text>
                                 </TouchableOpacity>
                             </View>
@@ -143,7 +176,6 @@ const styles = StyleSheet.create({
     logo: {
         width: 140,
         height: 140,
-        resizeMode: "contain",
         marginTop: 40,
         marginBottom: 24,
     },
@@ -197,7 +229,14 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         marginBottom: 28,
     },
+    loginButtonDisabled: { opacity: 0.6 },
     loginButtonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+    errorText: {
+        color: "#FF5252",
+        fontSize: 13,
+        textAlign: "center",
+        marginBottom: 12,
+    },
 
     registerRow: { flexDirection: "row", justifyContent: "center" },
     registerText: { color: Colors.textSecondary, fontSize: 14 },

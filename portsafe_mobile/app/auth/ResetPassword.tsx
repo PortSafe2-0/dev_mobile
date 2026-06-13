@@ -1,4 +1,4 @@
-    import React, { useState, useRef } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -9,22 +9,28 @@ import {
   Platform,
   ScrollView,
   StatusBar,
+  ActivityIndicator,
+  Alert,
   useWindowDimensions,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { Colors } from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { api } from "@/services/api";
 
 const CODE_LENGTH = 6;
 
 export default function ResetPasswordScreen() {
-  const [email, setEmail] = useState("");
+  const { email: emailParam } = useLocalSearchParams<{ email?: string }>();
+
   const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(""));
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const inputsRef = useRef<(TextInput | null)[]>([]);
 
@@ -36,7 +42,6 @@ export default function ResetPasswordScreen() {
     const newCode = [...code];
     newCode[index] = digit;
     setCode(newCode);
-
     if (digit && index < CODE_LENGTH - 1) {
       inputsRef.current[index + 1]?.focus();
     }
@@ -48,8 +53,33 @@ export default function ResetPasswordScreen() {
     }
   };
 
-  const handleSubmit = () => {
-    console.log({ email, code: code.join(""), newPassword, confirmPassword });
+  const handleSubmit = async () => {
+    const codeStr = code.join("");
+    if (codeStr.length < CODE_LENGTH) {
+      setError("Preencha o código completo de 6 dígitos");
+      return;
+    }
+    if (!newPassword || newPassword.length < 6) {
+      setError("A nova senha deve ter ao menos 6 caracteres");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError("As senhas não conferem");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      await api.auth.resetPassword(emailParam ?? "", codeStr, newPassword);
+      Alert.alert("Sucesso", "Senha redefinida com sucesso!", [
+        { text: "Fazer login", onPress: () => router.replace("/auth/login") },
+      ]);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Código inválido ou expirado";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -73,21 +103,12 @@ export default function ResetPasswordScreen() {
             </View>
 
             <Text style={styles.title}>Redefinir Senha</Text>
-            <Text style={styles.subtitle}>Digite o código recebido por e-mail</Text>
+            <Text style={styles.subtitle}>
+              Código enviado para{"\n"}
+              <Text style={{ color: Colors.accent }}>{emailParam}</Text>
+            </Text>
 
-            {/* E-mail */}
-            <Text style={styles.label}>E-mail</Text>
-            <View style={styles.inputWrapper}>
-              <TextInput
-                style={styles.input}
-                placeholder="seu@email.com"
-                placeholderTextColor={Colors.textSecondary}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
+            {error && <Text style={styles.errorText}>{error}</Text>}
 
             {/* Código de 6 dígitos */}
             <Text style={[styles.label, { marginTop: 16 }]}>Código de 6 dígitos</Text>
@@ -148,9 +169,16 @@ export default function ResetPasswordScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Botão */}
-            <TouchableOpacity style={styles.submitButton}  onPress={() => router.push("/auth/login")}>
-              <Text style={styles.submitButtonText}>Redefinir Senha</Text>
+            <TouchableOpacity
+              style={[styles.submitButton, loading && { opacity: 0.6 }]}
+              onPress={handleSubmit}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.submitButtonText}>Redefinir Senha</Text>
+              )}
             </TouchableOpacity>
 
             {/* Voltar para o login */}
@@ -238,11 +266,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     width: "100%",
-    gap: 8,
   },
   codeInput: {
-    flex: 1,
-    height: 52,
+    width: "13%",
+    aspectRatio: 1,
     backgroundColor: Colors.surfaceElevated,
     borderRadius: 12,
     borderWidth: 1,
@@ -280,5 +307,12 @@ const styles = StyleSheet.create({
   backText: {
     color: Colors.textSecondary,
     fontSize: 14,
+  },
+  errorText: {
+    color: "#FF5252",
+    fontSize: 13,
+    textAlign: "center",
+    marginBottom: 12,
+    width: "100%",
   },
 });

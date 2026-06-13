@@ -9,24 +9,40 @@ import {
   Platform,
   ScrollView,
   StatusBar,
+  ActivityIndicator,
   useWindowDimensions,
 } from "react-native";
 import { router } from "expo-router";
 import { Colors } from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { api } from "@/services/api";
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [codeSent, setCodeSent] = useState(false);
 
   const { width } = useWindowDimensions();
   const isWeb = width > 768;
 
-  const handleSubmit = () => {
-    setCodeSent(true);
-    console.log({ email });
-    router.push("/auth/ResetPassword");
+  const handleSubmit = async () => {
+    if (!email.trim()) {
+      setError("Informe seu e-mail");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      await api.auth.forgotPassword(email.trim());
+      setCodeSent(true);
+      router.push({ pathname: "/auth/ResetPassword", params: { email: email.trim() } });
+    } catch {
+      setError("Não foi possível enviar o código. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -61,19 +77,17 @@ export default function ForgotPasswordScreen() {
             <Text style={styles.title}>Esqueci a senha</Text>
             <Text style={styles.subtitle}>Recupere o acesso à sua conta</Text>
 
-            {/* Banner de código enviado */}
             {codeSent && (
               <View style={styles.infoBanner}>
-                <Ionicons
-                  name="information-circle-outline"
-                  size={18}
-                  color={Colors.accent}
-                  style={{ marginTop: 1 }}
-                />
+                <Ionicons name="information-circle-outline" size={18} color={Colors.accent} style={{ marginTop: 1 }} />
                 <Text style={styles.infoBannerText}>
                   Código enviado! Verifique seu e-mail (e a pasta de spam).
                 </Text>
               </View>
+            )}
+
+            {error && (
+              <Text style={styles.errorText}>{error}</Text>
             )}
 
             {/* Campo E-mail */}
@@ -96,10 +110,19 @@ export default function ForgotPasswordScreen() {
               />
             </View>
 
-            {/* Botão */}
-            <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-              <Text style={styles.submitButtonText}>Redefinir</Text>
-              <Ionicons name="arrow-forward" size={18} color="#fff" />
+            <TouchableOpacity
+              style={[styles.submitButton, loading && { opacity: 0.6 }]}
+              onPress={handleSubmit}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <Text style={styles.submitButtonText}>Enviar código</Text>
+                  <Ionicons name="arrow-forward" size={18} color="#fff" />
+                </>
+              )}
             </TouchableOpacity>
 
             <Text style={styles.hint}>
@@ -265,5 +288,12 @@ const styles = StyleSheet.create({
     color: Colors.accent,
     fontSize: 14,
     fontWeight: "600",
+  },
+  errorText: {
+    color: "#FF5252",
+    fontSize: 13,
+    textAlign: "center",
+    marginBottom: 12,
+    width: "100%",
   },
 });

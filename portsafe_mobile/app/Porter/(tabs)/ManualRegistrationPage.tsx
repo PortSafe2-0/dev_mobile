@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,26 +10,116 @@ import {
   ScrollView,
   StatusBar,
   Image,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  FlatList,
   useWindowDimensions,
 } from "react-native";
 import { router } from "expo-router";
 import { Colors } from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { api, UserDto, LockerDto } from "@/services/api";
 
 export default function ManualRegistrationScreen() {
   const [delivererName, setDelivererName] = useState("");
   const [company, setCompany] = useState("");
-  const [residentName, setResidentName] = useState("");
-  const [apartment, setApartment] = useState("");
-  const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
+
+  const [moradores, setMoradores] = useState<UserDto[]>([]);
+  const [lockers, setLockers] = useState<LockerDto[]>([]);
+  const [selectedMorador, setSelectedMorador] = useState<UserDto | null>(null);
+  const [selectedLocker, setSelectedLocker] = useState<LockerDto | null>(null);
+  const [showMoradorPicker, setShowMoradorPicker] = useState(false);
+  const [showLockerPicker, setShowLockerPicker] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
+  const [loadingLockers, setLoadingLockers] = useState(false);
 
   const { width } = useWindowDimensions();
   const isWeb = width > 768;
 
-  const handleRegister = () => {
-    console.log({ delivererName, company, residentName, apartment, phone, notes });
+  useEffect(() => {
+    (async () => {
+      try {
+        const [users, lockersRes] = await Promise.all([
+          api.users.getAll(),
+          api.lockers.getAll(),
+        ]);
+        setMoradores(users.filter((u) => u.role.toLowerCase() === "morador"));
+        setLockers((lockersRes.data ?? []).filter((l) => l.isActive));
+      } catch {
+        Alert.alert("Aviso", "Não foi possível carregar moradores/armários.");
+      } finally {
+        setLoadingData(false);
+      }
+    })();
+  }, []);
+
+  const filteredMoradores = moradores.filter((m) =>
+    m.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const refreshLockers = async () => {
+    setLoadingLockers(true);
+    try {
+      const lockersRes = await api.lockers.getAll();
+      const fresh = (lockersRes.data ?? []).filter((l) => l.isActive);
+      setLockers(fresh);
+      // Se o armário selecionado agora está Occupied, limpa a seleção
+      setSelectedLocker((prev) => {
+        if (!prev) return null;
+        const updated = fresh.find((l) => l.id === prev.id);
+        return updated?.status === "Available" ? prev : null;
+      });
+    } catch {
+      // silencioso — mantém lista anterior
+    } finally {
+      setLoadingLockers(false);
+    }
+  };
+
+  const handleRegister = async () => {
+    if (!selectedMorador) {
+      Alert.alert("Atenção", "Selecione o morador destinatário.");
+      return;
+    }
+    if (!selectedLocker) {
+      Alert.alert("Atenção", "Selecione um armário disponível.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const trackingCode = `PS${Date.now().toString(36).toUpperCase().slice(-6)}`;
+      await api.deliveries.create({
+        userId: selectedMorador.id,
+        lockerId: selectedLocker.id,
+        recipientName: selectedMorador.name,
+        trackingCode,
+      });
+      const registeredMorador = selectedMorador.name;
+      const registeredCode = trackingCode;
+      const registeredLocker = selectedLocker.code;
+      setSelectedMorador(null);
+      setSelectedLocker(null);
+      setDelivererName("");
+      setCompany("");
+      setNotes("");
+      Alert.alert(
+        "Entrega Registrada!",
+        `Código: #${registeredCode}\nMorador: ${registeredMorador}\nArmário: ${registeredLocker}`,
+        [{ text: "OK", onPress: () => router.back() }]
+      );
+    } catch (e: unknown) {
+      console.error("[ManualReg] erro ao criar entrega:", e);
+      const msg = e instanceof Error ? e.message : "Não foi possível registrar a entrega.";
+      Alert.alert("Erro", msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -46,6 +136,7 @@ export default function ManualRegistrationScreen() {
               <Image
                 source={require("@/assets/images/horiz_icon.png")}
                 style={styles.headerLogo}
+                resizeMode="contain"
               />
           </View>
           <Text style={styles.headerTitle}>REGISTRO MANUAL</Text>
@@ -89,39 +180,34 @@ export default function ManualRegistrationScreen() {
             {/* Destinatário */}
             <Text style={styles.sectionLabel}>DESTINATÁRIO</Text>
             <View style={styles.fieldsGroup}>
-              <View style={styles.inputWrapper}>
-                <TextInput
-                  style={[styles.input, { flex: 1 }]}
-                  placeholder="Nome do Morador"
-                  placeholderTextColor={Colors.textSecondary}
-                  value={residentName}
-                  onChangeText={setResidentName}
-                  autoCapitalize="words"
-                />
-                <Ionicons name="search-outline" size={20} color={Colors.textSecondary} />
-              </View>
-              <View style={styles.row}>
-                <View style={[styles.inputWrapper, { flex: 1 }]}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Apartamento"
-                    placeholderTextColor={Colors.textSecondary}
-                    value={apartment}
-                    onChangeText={setApartment}
-                    keyboardType="numeric"
-                  />
-                </View>
-                <View style={[styles.inputWrapper, { flex: 1 }]}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Telefone"
-                    placeholderTextColor={Colors.textSecondary}
-                    value={phone}
-                    onChangeText={setPhone}
-                    keyboardType="phone-pad"
-                  />
-                </View>
-              </View>
+              <TouchableOpacity
+                style={styles.inputWrapper}
+                onPress={() => { setSearch(""); setShowMoradorPicker(true); }}
+                disabled={loadingData}
+              >
+                <Text style={[styles.input, { flex: 1, color: selectedMorador ? Colors.textPrimary : Colors.textSecondary }]}>
+                  {loadingData ? "Carregando..." : selectedMorador ? selectedMorador.name : "Selecionar morador"}
+                </Text>
+                <Ionicons name="chevron-down" size={20} color={Colors.textSecondary} />
+              </TouchableOpacity>
+              {selectedMorador && (
+                <Text style={styles.selectedInfo}>{selectedMorador.email}</Text>
+              )}
+            </View>
+
+            {/* Armário */}
+            <Text style={styles.sectionLabel}>ARMÁRIO</Text>
+            <View style={styles.fieldsGroup}>
+              <TouchableOpacity
+                style={styles.inputWrapper}
+                onPress={() => { refreshLockers(); setShowLockerPicker(true); }}
+                disabled={loadingData}
+              >
+                <Text style={[styles.input, { flex: 1, color: selectedLocker ? Colors.textPrimary : Colors.textSecondary }]}>
+                  {loadingData ? "Carregando..." : selectedLocker ? `Armário ${selectedLocker.code} — ${selectedLocker.location}` : "Selecionar armário"}
+                </Text>
+                <Ionicons name="chevron-down" size={20} color={Colors.textSecondary} />
+              </TouchableOpacity>
             </View>
 
             {/* Observações */}
@@ -155,13 +241,131 @@ export default function ManualRegistrationScreen() {
             </View>
 
             {/* Botão */}
-            <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
-              <Text style={styles.registerButtonText}>Registrar Entrega</Text>
+            <TouchableOpacity
+              style={[styles.registerButton, loading && { opacity: 0.6 }]}
+              onPress={handleRegister}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.registerButtonText}>Registrar Entrega</Text>
+              )}
             </TouchableOpacity>
 
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Modal — Selecionar Morador */}
+      <Modal visible={showMoradorPicker} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Selecionar Morador</Text>
+              <TouchableOpacity onPress={() => setShowMoradorPicker(false)}>
+                <Ionicons name="close" size={22} color={Colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.searchWrapper}>
+              <Ionicons name="search-outline" size={18} color={Colors.textSecondary} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Buscar morador..."
+                placeholderTextColor={Colors.textSecondary}
+                value={search}
+                onChangeText={setSearch}
+                autoFocus
+              />
+            </View>
+            <FlatList
+              data={filteredMoradores}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[styles.pickerItem, selectedMorador?.id === item.id && styles.pickerItemActive]}
+                  onPress={() => { setSelectedMorador(item); setShowMoradorPicker(false); }}
+                >
+                  <View style={styles.pickerItemIcon}>
+                    <Ionicons name="person-outline" size={18} color={Colors.primary} />
+                  </View>
+                  <View>
+                    <Text style={styles.pickerItemName}>{item.name}</Text>
+                    <Text style={styles.pickerItemSub}>{item.email}</Text>
+                  </View>
+                  {selectedMorador?.id === item.id && (
+                    <Ionicons name="checkmark" size={18} color={Colors.primary} style={{ marginLeft: "auto" }} />
+                  )}
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={
+                <Text style={styles.pickerEmpty}>Nenhum morador encontrado</Text>
+              }
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal — Selecionar Armário */}
+      <Modal visible={showLockerPicker} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Selecionar Armário</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                {loadingLockers && <ActivityIndicator size="small" color={Colors.primary} />}
+                <TouchableOpacity onPress={() => setShowLockerPicker(false)}>
+                  <Ionicons name="close" size={22} color={Colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+            </View>
+            <FlatList
+              data={lockers}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => {
+                const isAvailable = item.status === "Available";
+                const isSelected = selectedLocker?.id === item.id;
+                return (
+                  <TouchableOpacity
+                    style={[
+                      styles.pickerItem,
+                      isSelected && styles.pickerItemActive,
+                      !isAvailable && styles.pickerItemDisabled,
+                    ]}
+                    onPress={() => {
+                      if (!isAvailable) return;
+                      setSelectedLocker(item);
+                      setShowLockerPicker(false);
+                    }}
+                    activeOpacity={isAvailable ? 0.7 : 1}
+                  >
+                    <View style={[styles.pickerItemIcon, !isAvailable && { backgroundColor: "rgba(255,82,82,0.1)" }]}>
+                      <Ionicons name="cube-outline" size={18} color={isAvailable ? Colors.primary : "#FF5252"} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.pickerItemName, !isAvailable && { color: Colors.textSecondary }]}>
+                        Armário {item.code}
+                      </Text>
+                      <Text style={styles.pickerItemSub}>{item.location}</Text>
+                    </View>
+                    <View style={[styles.statusBadge, { backgroundColor: isAvailable ? "rgba(76,175,80,0.12)" : "rgba(255,82,82,0.12)" }]}>
+                      <Text style={[styles.statusBadgeText, { color: isAvailable ? "#4CAF50" : "#FF5252" }]}>
+                        {isAvailable ? "Livre" : "Ocupado"}
+                      </Text>
+                    </View>
+                    {isSelected && (
+                      <Ionicons name="checkmark" size={18} color={Colors.primary} style={{ marginLeft: 8 }} />
+                    )}
+                  </TouchableOpacity>
+                );
+              }}
+              ListEmptyComponent={
+                <Text style={styles.pickerEmpty}>Nenhum armário cadastrado</Text>
+              }
+            />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -194,7 +398,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     overflow: "hidden",
   },
-  headerLogo: { width: 180, height: 100, resizeMode: "contain" },
+  headerLogo: { width: 180, height: 100, },
   headerBrand: { fontSize: 16, fontWeight: "800" },
   headerBrandPort: { color: Colors.textPrimary },
   headerBrandSafe: { color: Colors.primary },
@@ -293,5 +497,89 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "700",
+  },
+
+  selectedInfo: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: -6,
+    marginLeft: 4,
+  },
+
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalBox: {
+    backgroundColor: Colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: "75%",
+    paddingBottom: 32,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  modalTitle: { fontSize: 16, fontWeight: "800", color: Colors.textPrimary },
+
+  searchWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    margin: 12,
+    backgroundColor: Colors.surfaceElevated,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingHorizontal: 12,
+    height: 44,
+  },
+  searchInput: { flex: 1, color: Colors.textPrimary, fontSize: 14 },
+
+  pickerItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  pickerItemActive: { backgroundColor: "rgba(33,150,243,0.06)" },
+  pickerItemIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "rgba(33,150,243,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pickerItemName: { fontSize: 14, fontWeight: "600", color: Colors.textPrimary },
+  pickerItemSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 1 },
+  pickerItemDisabled: {
+    opacity: 0.6,
+  },
+  statusBadge: {
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  statusBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  pickerEmpty: {
+    textAlign: "center",
+    color: Colors.textSecondary,
+    fontSize: 14,
+    padding: 24,
   },
 });

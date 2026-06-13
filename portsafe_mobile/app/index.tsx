@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   StatusBar,
+  ActivityIndicator,
   useWindowDimensions,
 } from "react-native";
 import { router } from "expo-router";
@@ -12,14 +13,37 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Colors } from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "react-native";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function PortSafeScreen() {
+  const { isAuthenticated, isLoading, user } = useAuth();
   const { width } = useWindowDimensions();
   const isWeb = width > 768;
 
+  useEffect(() => {
+    if (isLoading) return;
+    if (!isAuthenticated || !user) return;
+    const role = user.role.toLowerCase();
+    if (role === "morador") router.replace("/Resident/(tabs)");
+    else if (role === "porteiro") router.replace("/Porter/(tabs)");
+  }, [isAuthenticated, isLoading, user]);
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background, alignItems: "center", justifyContent: "center" }}>
+        <Image
+          source={require("@/assets/images/vert_icon.png")}
+          style={{ width: 120, height: 120, marginBottom: 24 }}
+          resizeMode="contain"
+        />
+        <ActivityIndicator color={Colors.primary} size="large" />
+      </SafeAreaView>
+    );
+  }
+
   const handleSelectRole = (role: string) => {
-    if (role === "portaria") router.push("/auth/login");
-    else if (role === "morador") router.push("/auth/login");
+    if (role === "portaria") router.push({ pathname: "/auth/login", params: { role: "porteiro" } });
+    else if (role === "morador") router.push({ pathname: "/auth/login", params: { role: "morador" } });
     else if (role === "entregador") router.push("/DeliveryPeople/RegisterDeliveryPage");
   };
 
@@ -31,8 +55,9 @@ export default function PortSafeScreen() {
         <View style={[styles.container, isWeb && styles.containerWeb]}>
           {/* Logo */}
           <Image
-            source={require("@/assets/images/vert_icon.png")} 
+            source={require("@/assets/images/vert_icon.png")}
             style={styles.logo}
+            resizeMode="contain"
             />
 
         <Text style={styles.system}>SISTEMA DE ENTREGAS DO CONDOMÍNIO</Text>
@@ -116,8 +141,7 @@ const styles = StyleSheet.create({
   logo: {
     width: 220,
     height: 220,
-    resizeMode: "contain",
-    },
+  },
   title: {
     fontSize: 40,
     fontWeight: "700",

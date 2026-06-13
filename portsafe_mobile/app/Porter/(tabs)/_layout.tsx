@@ -1,8 +1,19 @@
-import { Tabs } from "expo-router";
+import { Tabs, router } from "expo-router";
+import { useEffect } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/constants/Colors";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function TabLayout() {
+  const { isAuthenticated, isLoading, user } = useAuth();
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!isAuthenticated || user?.role.toLowerCase() !== "porteiro") {
+      router.replace("/");
+    }
+  }, [isAuthenticated, isLoading, user]);
+
   return (
     <Tabs
       screenOptions={{
@@ -48,19 +59,13 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? "notifications" : "notifications-outline"} size={size} color={color} />
           ),
-          // Badge de notificação:
           tabBarBadge: 1,
           tabBarBadgeStyle: { backgroundColor: Colors.primary },
         }}
       />
       <Tabs.Screen
-        name="ajustes"
-        options={{
-          title: "AJUSTES",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="settings-outline" size={size} color={color} />
-          ),
-        }}
+        name="ManualRegistrationPage"
+        options={{ href: null }}
       />
     </Tabs>
   );

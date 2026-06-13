@@ -9,13 +9,10 @@ import {
   Image,
   useWindowDimensions,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { Colors } from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-const DELIVERY_CODE = "L040UXQX";
-const LOCKER_NUMBER = "115";
 
 const SHARE_OPTIONS = [
   { id: "whatsapp", label: "WHATSAPP", sublabel: "Enviou", color: "#25D366", icon: "logo-whatsapp" },
@@ -24,17 +21,19 @@ const SHARE_OPTIONS = [
 ] as const;
 
 export default function RegisterDeliveryStep4Screen() {
+  const params = useLocalSearchParams<{ trackingCode: string; lockerCode: string }>();
+  const deliveryCode = params.trackingCode ?? "PSXXXXXX";
+  const lockerNumber = params.lockerCode ?? "---";
+
   const { width } = useWindowDimensions();
   const isWeb = width > 768;
 
   const handleFinish = () => {
-    // router.replace("/home");
-    console.log("Finalizar e Voltar ao Início");
+    router.replace('/');
   };
 
   const handleNewDelivery = () => {
-    // router.replace("/delivery/step1");
-    console.log("Registrar Nova Entrega");
+    router.replace('/DeliveryPeople/RegisterDeliveryPage');
   };
 
   return (
@@ -51,6 +50,7 @@ export default function RegisterDeliveryStep4Screen() {
           <Image
             source={require("@/assets/images/icon_portsafee.png")}
             style={styles.logo}
+          resizeMode="contain"
           />
           <Text style={styles.appName}>
             <Text style={styles.appNamePort}>Port</Text>
@@ -78,18 +78,18 @@ export default function RegisterDeliveryStep4Screen() {
             {/* Código de entrega */}
             <View style={styles.codeBox}>
               <Text style={styles.codeLabel}>CÓDIGO DE ENTREGA</Text>
-              <Text style={styles.codeValue}>{DELIVERY_CODE}</Text>
+              <Text style={styles.codeValue}>{deliveryCode}</Text>
             </View>
 
             {/* Detalhes */}
             <View style={styles.detailsBox}>
               <View style={styles.detailRow}>
                 <Text style={styles.detailKey}>Armário:</Text>
-                <Text style={styles.detailValue}>{LOCKER_NUMBER}</Text>
+                <Text style={styles.detailValue}>{lockerNumber}</Text>
               </View>
               <View style={styles.detailRow}>
                 <Text style={styles.detailKey}>Código de Rastreio:</Text>
-                <Text style={styles.detailValue}>{DELIVERY_CODE}</Text>
+                <Text style={styles.detailValue}>{deliveryCode}</Text>
               </View>
               <View style={styles.detailRow}>
                 <Text style={styles.detailKey}>Status:</Text>
@@ -113,12 +113,12 @@ export default function RegisterDeliveryStep4Screen() {
           </View>
 
           {/* Botão Finalizar */}
-          <TouchableOpacity style={styles.finishButton} onPress={() => router.push("/")}>
+          <TouchableOpacity style={styles.finishButton} onPress={handleFinish}>
             <Text style={styles.finishButtonText}>Finalizar e Voltar ao Início</Text>
           </TouchableOpacity>
 
           {/* Botão Nova Entrega */}
-          <TouchableOpacity style={styles.newDeliveryButton} onPress={() => router.push("/DeliveryPeople/RegisterDeliveryPage")}>
+          <TouchableOpacity style={styles.newDeliveryButton} onPress={handleNewDelivery}>
             <Text style={styles.newDeliveryText}>Registrar Nova Entrega</Text>
           </TouchableOpacity>
 
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   logo: {
     width: 80,
     height: 80,
-    resizeMode: "contain",
+    
     marginBottom: 8,
   },
   appName: {
