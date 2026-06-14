@@ -32,8 +32,8 @@ interface RegisterExtra {
 
 interface AuthContextValue extends AuthState {
     isLoading: boolean;
-    login: (email: string, password: string) => Promise<void>;
-    register: (name: string, email: string, password: string, extra?: RegisterExtra) => Promise<void>;
+    login: (email: string, password: string) => Promise<UserDto>;
+    register: (name: string, email: string, password: string, extra?: RegisterExtra) => Promise<UserDto>;
     logout: () => Promise<void>;
 }
 
@@ -68,21 +68,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })();
     }, []);
 
-    const login = useCallback(async (email: string, password: string) => {
+    const login = useCallback(async (email: string, password: string): Promise<UserDto> => {
         const res = await api.auth.login(email, password);
         setAuthToken(res.token);
         setState({ user: res.user, token: res.token, isAuthenticated: true });
         await AsyncStorage.setItem(TOKEN_KEY, res.token);
         await AsyncStorage.setItem(USER_KEY, JSON.stringify(res.user));
+        return res.user;
     }, []);
 
     const register = useCallback(
-        async (name: string, email: string, password: string, extra?: RegisterExtra) => {
+        async (name: string, email: string, password: string, extra?: RegisterExtra): Promise<UserDto> => {
             const res = await api.auth.register({ name, email, password, ...extra });
             setAuthToken(res.token);
             setState({ user: res.user, token: res.token, isAuthenticated: true });
             await AsyncStorage.setItem(TOKEN_KEY, res.token);
             await AsyncStorage.setItem(USER_KEY, JSON.stringify(res.user));
+            return res.user;
         },
         []
     );

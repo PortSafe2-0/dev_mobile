@@ -92,7 +92,7 @@ export default function RegisterScreen() {
     setLoading(true);
     setError(null);
     try {
-      await register(nomeCompleto.trim(), email.trim(), password, {
+      const registeredUser = await register(nomeCompleto.trim(), email.trim(), password, {
         role,
         phone: telefone.trim() || undefined,
         document: cpf.trim() || undefined,
@@ -102,11 +102,9 @@ export default function RegisterScreen() {
         houseNumber: numeroCasa.trim() || undefined,
         zipCode: cep.trim() || undefined,
       });
-      if (role === "morador") {
-        router.replace("/Resident/(tabs)");
-      } else {
-        router.replace("/Porter/(tabs)");
-      }
+      const userRole = registeredUser.role.toLowerCase();
+      if (userRole === "morador") router.replace("/Resident/(tabs)");
+      else if (userRole === "porteiro") router.replace("/Porter/(tabs)");
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Erro ao cadastrar";
       setError(msg);

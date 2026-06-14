@@ -1,18 +1,8 @@
-import { Tabs, router } from "expo-router";
-import { useEffect } from "react";
+import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/constants/Colors";
-import { useAuth } from "@/contexts/AuthContext";
 
 export default function TabLayout() {
-  const { isAuthenticated, isLoading, user } = useAuth();
-
-  useEffect(() => {
-    if (isLoading) return;
-    if (!isAuthenticated || user?.role.toLowerCase() !== "porteiro") {
-      router.replace("/");
-    }
-  }, [isAuthenticated, isLoading, user]);
 
   return (
     <Tabs

@@ -10,7 +10,6 @@ import {
   ScrollView,
   StatusBar,
   ActivityIndicator,
-  Alert,
   useWindowDimensions,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
@@ -31,6 +30,7 @@ export default function ResetPasswordScreen() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   const inputsRef = useRef<(TextInput | null)[]>([]);
 
@@ -71,9 +71,7 @@ export default function ResetPasswordScreen() {
     setError(null);
     try {
       await api.auth.resetPassword(emailParam ?? "", codeStr, newPassword);
-      Alert.alert("Sucesso", "Senha redefinida com sucesso!", [
-        { text: "Fazer login", onPress: () => router.replace("/auth/login") },
-      ]);
+      setSuccess(true);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Código inválido ou expirado";
       setError(msg);
@@ -81,6 +79,26 @@ export default function ResetPasswordScreen() {
       setLoading(false);
     }
   };
+
+  if (success) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
+        <View style={[styles.root, { alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }]}>
+          <View style={styles.iconWrapper}>
+            <Ionicons name="checkmark-circle-outline" size={40} color="#22c55e" />
+          </View>
+          <Text style={[styles.title, { marginBottom: 12 }]}>Senha redefinida!</Text>
+          <Text style={[styles.subtitle, { marginBottom: 40 }]}>
+            Sua senha foi atualizada com sucesso.
+          </Text>
+          <TouchableOpacity style={styles.submitButton} onPress={() => router.replace("/auth/login")}>
+            <Text style={styles.submitButtonText}>Fazer login</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>

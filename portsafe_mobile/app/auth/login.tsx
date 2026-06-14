@@ -41,12 +41,10 @@ export default function LoginScreen() {
         setLoading(true);
         setError(null);
         try {
-            await login(email.trim(), password);
-            if (role === "morador") {
-                router.replace("/Resident/(tabs)");
-            } else {
-                router.replace("/Porter/(tabs)");
-            }
+            const loggedUser = await login(email.trim(), password);
+            const userRole = loggedUser.role.toLowerCase();
+            if (userRole === "morador") router.replace("/Resident/(tabs)");
+            else if (userRole === "porteiro") router.replace("/Porter/(tabs)");
         } catch {
             setError("Credenciais inválidas. Verifique e-mail e senha.");
         } finally {
